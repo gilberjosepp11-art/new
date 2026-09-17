@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gilber Burger POS</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen pb-12">
+
+  <!-- Header -->
+  <header class="bg-slate-800 border-b border-slate-700 p-3 sticky top-0 z-30 shadow-md">
+    <div class="max-w-5xl mx-auto flex justify-between items-center">
+      <h1 class="text-lg font-black text-amber-400 uppercase tracking-wide">🍔 Gilber Burger</h1>
+      <div class="flex items-center gap-2 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-700 text-sm">
+        <span class="text-slate-400 font-semibold text-xs">BCV:</span>
+        <input id="inputTasa" type="number" step="0.01" class="w-20 bg-transparent text-amber-300 font-mono font-bold outline-none" value="845.00">
+        <span class="text-xs text-slate-400">Bs/$</span>
+        <button onclick="cargarTasa()" title="Actualizar BCV" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-2 py-0.5 rounded text-xs transition">↻</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Pestañas (4 Pestañas) -->
+  <nav class="max-w-5xl mx-auto px-4 mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs sm:text-sm font-semibold">
+    <button onclick="mostrar('ventas')" id="b-ventas" class="py-2.5 bg-amber-500 text-slate-950 rounded-lg shadow font-bold">Punto de Venta</button>
+    <button onclick="mostrar('productos')" id="b-productos" class="py-2.5 bg-slate-800 text-slate-300 hover:text-white rounded-lg">Menú / Precios</button>
+    <button onclick="mostrar('cuentas')" id="b-cuentas" class="py-2.5 bg-slate-800 text-slate-300 hover:text-white rounded-lg">Pagos / Créditos</button>
+    <button onclick="mostrar('totales')" id="b-totales" class="py-2.5 bg-slate-800 text-slate-300 hover:text-white rounded-lg">📊 Totales Mes</button>
+  </nav>
+
+  <main class="max-w-5xl mx-auto px-4 mt-4">
+    
+    <!-- 1. VENTAS -->
+    <section id="tab-ventas" class="grid grid-cols-1 md:grid-cols-12 gap-6">
+      <div class="md:col-span-7">
+        <div id="gridProductos" class="grid grid-cols-2 gap-3"></div>
+      </div>
+      <div class="md:col-span-5 bg-slate-800 p-4 rounded-xl border border-slate-700 flex flex-col justify-between shadow-lg">
+        <div>
+          <div class="flex justify-between items-center border-b border-slate-700 pb-2 mb-2">
+            <h3 class="font-bold text-white text-sm">Comanda Actual</h3>
+            <button onclick="vaciarComanda()" class="text-xs text-rose-400 hover:underline">Vaciar</button>
+          </div>
+          <div id="listaComanda" class="space-y-1.5 max-h-56 overflow-y-auto text-sm"></div>
+        </div>
+        <div class="border-t border-slate-700 pt-3 space-y-2 mt-4">
+          <div class="flex justify-between items-baseline font-mono">
+            <span class="text-slate-400 text-xs">Total USD:</span>
+            <span id="txtUSD" class="text-2xl font-black text-amber-400">$0.00</span>
+          </div>
+          <div class="flex justify-between items-baseline font-mono">
+            <span class="text-slate-400 text-xs">Total Bs:</span>
+            <span id="txtBs" class="text-base font-bold text-slate-200">Bs 0.00</span>
+          </div>
+          <input id="txtCliente" placeholder="Cliente (requerido para fiar)" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs outline-none focus:border-amber-400">
+          <div class="grid grid-cols-2 gap-2 text-xs font-semibold pt-1">
+            <button onclick="enviarVenta('Pago Movil')" class="bg-slate-700 hover:bg-slate-600 p-2 rounded-lg">📲 Pago Móvil</button>
+            <button onclick="enviarVenta('Efectivo USD')" class="bg-slate-700 hover:bg-slate-600 p-2 rounded-lg">💵 Efectivo $</button>
+            <button onclick="enviarVenta('Punto / Bs')" class="bg-slate-700 hover:bg-slate-600 p-2 rounded-lg">💳 Punto / Bs</button>
+            <button onclick="enviarVenta('Credito', true)" class="bg-rose-900/60 hover:bg-rose-800/80 text-rose-300 p-2 rounded-lg">⏳ Dejar a Crédito</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. PRODUCTOS -->
+    <section id="tab-productos" class="hidden grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div class="bg-slate-800 p-4 rounded-xl border border-slate-700 h-fit space-y-3">
+        <h3 id="lblFormProd" class="font-bold text-amber-400">Registrar Producto</h3>
+        <input type="hidden" id="pId">
+        <input id="pNombre" placeholder="Nombre" class="w-full bg-slate-900 border border-slate-700 p-2 rounded text-sm outline-none focus:border-amber-400">
+        <input id="pPrecio" type="number" step="0.25" placeholder="Precio USD" class="w-full bg-slate-900 border border-slate-700 p-2 rounded text-sm outline-none focus:border-amber-400">
+        <div class="flex gap-2">
+          <button onclick="guardarProd()" class="flex-1 bg-amber-500 text-slate-950 font-bold p-2 rounded text-sm hover:bg-amber-400">Guardar</button>
+          <button onclick="limpiarFormProd()" class="bg-slate-700 px-3 p-2 rounded text-sm text-slate-300">Cancelar</button>
+        </div>
+      </div>
+      <div class="md:col-span-2 bg-slate-800 p-4 rounded-xl border border-slate-700">
+        <table class="w-full text-left text-sm">
+          <thead>
+            <tr class="text-slate-400 border-b border-slate-700 text-xs uppercase">
+              <th class="pb-2">Producto</th>
+              <th class="pb-2">Precio ($)</th>
+              <th class="pb-2">Precio (Bs)</th>
+              <th class="pb-2 text-right">Acción</th>
+            </tr>
+          </thead>
+          <tbody id="tbProds" class="divide-y divide-slate-700/50"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 3. CUENTAS Y CRÉDITOS -->
+    <section id="tab-cuentas" class="hidden space-y-4">
+      <div class="bg-slate-800 p-4 rounded-xl border border-rose-900/40">
+        <h3 class="font-bold text-rose-400 mb-2">Créditos Pendientes por Cobrar</h3>
+        <table class="w-full text-left text-sm">
+          <tbody id="tbCreditos" class="divide-y divide-slate-700/50"></tbody>
+        </table>
+      </div>
+      <div class="bg-slate-800 p-4 rounded-xl border border-slate-700">
+        <h3 class="font-bold text-emerald-400 mb-2">Cobros Realizados</h3>
+        <table class="w-full text-left text-sm">
+          <tbody id="tbPagos" class="divide-y divide-slate-700/50"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 4. TOTALES DEL MES -->
+    <section id="tab-totales" class="hidden space-y-5">
+      <!-- Selector de Mes -->
+      <div class="flex items-center justify-between bg-slate-800 p-4 rounded-xl border border-slate-700">
+        <div>
+          <h2 class="text-base font-bold text-white">Reporte Mensual de Ventas</h2>
+          <p class="text-xs text-slate-400">Filtra por mes para ver totales cobrados y por cobrar</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <label class="text-xs text-slate-300 font-medium">Mes:</label>
+          <input type="month" id="selMes" onchange="cargarTotalesMes()" class="bg-slate-900 border border-slate-700 text-amber-300 font-mono text-sm px-3 py-1.5 rounded-lg outline-none">
+        </div>
+      </div>
+
+      <!-- Tarjetas Resumen -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <!-- Cobrado -->
+        <div class="bg-slate-800 border-l-4 border-emerald-500 p-4 rounded-xl shadow">
+          <span class="text-xs font-semibold text-emerald-400 uppercase tracking-wider block mb-1">Total Cobrado (Efectivo / Transferencias)</span>
+          <div class="flex justify-between items-baseline">
+            <span id="mesCobradoUSD" class="text-3xl font-black font-mono text-emerald-400">$0.00</span>
+            <span id="mesOrdenesCobradas" class="text-xs text-slate-400">0 órdenes</span>
+          </div>
+          <span id="mesCobradoBs" class="text-base font-mono text-slate-300 block mt-1">Bs 0.00</span>
+        </div>
+
+        <!-- Por cobrar / Fiados -->
+        <div class="bg-slate-800 border-l-4 border-rose-500 p-4 rounded-xl shadow">
+          <span class="text-xs font-semibold text-rose-400 uppercase tracking-wider block mb-1">Créditos Pendientes del Mes</span>
+          <div class="flex justify-between items-baseline">
+            <span id="mesCreditoUSD" class="text-3xl font-black font-mono text-rose-400">$0.00</span>
+            <span id="mesOrdenesCredito" class="text-xs text-slate-400">0 pendientes</span>
+          </div>
+          <span id="mesCreditoBs" class="text-base font-mono text-slate-300 block mt-1">Bs 0.00</span>
+        </div>
+      </div>
+
+      <!-- Desglose por método de pago -->
+      <div class="bg-slate-800 p-4 rounded-xl border border-slate-700">
+        <h3 class="text-sm font-bold text-amber-400 mb-3 uppercase tracking-wider">Desglose por Forma de Pago</h3>
+        <div id="gridDesglose" class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
+          <!-- Render dinámico -->
+        </div>
+      </div>
+
+      <!-- Detalle de ventas del mes -->
+      <div class="bg-slate-800 p-4 rounded-xl border border-slate-700">
+        <h3 class="text-sm font-bold text-white mb-3">Historial Detallado del Mes</h3>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs sm:text-sm">
+            <thead>
+              <tr class="text-slate-400 border-b border-slate-700">
+                <th class="pb-2">Fecha</th>
+                <th class="pb-2">Cliente / Detalle</th>
+                <th class="pb-2">Estado / Método</th>
+                <th class="pb-2 text-right">Monto $</th>
+                <th class="pb-2 text-right">Monto Bs</th>
+              </tr>
+            </thead>
+            <tbody id="tbVentasMes" class="divide-y divide-slate-700/50"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    let productos = [], comanda = [], tasa = 845.0;
+
+    async function init() {
+      // Mes actual por defecto (YYYY-MM)
+      const hoy = new Date();
+      const mesStr = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}`;
+      document.getElementById('selMes').value = mesStr;
+
+      await cargarTasa();
+      await cargarProductos();
+    }
+
+    async function cargarTasa() {
+      try {
+        const r = await fetch('/api/tasa-bcv');
+        const d = await r.json();
+        tasa = d.tasa;
+        document.getElementById('inputTasa').value = tasa.toFixed(2);
+      } catch(e){}
+    }
+
+    async function cargarProductos() {
+      const r = await fetch('/api/productos');
+      productos = await r.json();
+      renderCatalogo();
+      renderTablaProds();
+    }
+
+    function renderCatalogo() {
+      document.getElementById('gridProductos').innerHTML = productos.map(p => `
+        <button onclick="agregar(${p.id})" class="bg-slate-800 border border-slate-700 p-3 rounded-xl text-left hover:border-amber-400 active:scale-95 transition">
+          <p class="font-bold text-sm text-white leading-tight">${p.nombre}</p>
+          <div class="mt-2">
+            <span class="text-amber-400 font-mono font-black text-base">$${p.precio.toFixed(2)}</span>
+            <span class="text-slate-400 text-xs block">Bs ${(p.precio * tasa).toFixed(2)}</span>
+          </div>
+        </button>
+      `).join('');
+    }
+
+    function agregar(id) {
+      const it = comanda.find(x => x.id === id);
+      if (it) it.cant++;
+      else comanda.push({ ...productos.find(p => p.id === id), cant: 1 });
+      renderComanda();
+    }
+
+    function vaciarComanda() {
+      comanda = [];
+      renderComanda();
+    }
+
+    function renderComanda() {
+      const total = comanda.reduce((a, b) => a + (b.precio * b.cant), 0);
+      document.getElementById('txtUSD').innerText = `$${total.toFixed(2)}`;
+      document.getElementById('txtBs').innerText = `Bs ${(total * tasa).toFixed(2)}`;
+      
+      if (!comanda.length) {
+        document.getElementById('listaComanda').innerHTML = `<p class="text-slate-500 text-center py-6 text-xs">Sin productos en comanda</p>`;
+        return;
+      }
+
+      document.getElementById('listaComanda').innerHTML = comanda.map(i => `
+        <div class="flex justify-between items-center py-1 border-b border-slate-700/30">
+          <div>
+            <span class="text-white">${i.nombre}</span>
+            <span class="text-xs text-slate-400 block">$${i.precio.toFixed(2)} c/u</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-amber-300 font-mono font-bold">x${i.cant}</span>
+            <span class="font-mono font-bold text-xs">$${(i.precio * i.cant).toFixed(2)}</span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function enviarVenta(metodo, esCredito = false) {
+      if (!comanda.length) return alert("Agrega algún producto.");
+      const cliente = document.getElementById('txtCliente').value.trim() || (esCredito ? 'Sin Nombre' : 'Consumidor Final');
+      const totalUSD = comanda.reduce((a, b) => a + (b.precio * b.cant), 0);
+      
+      await fetch('/api/ventas', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          cliente,
+          detalle: comanda.map(c => `${c.cant}x ${c.nombre}`).join(', '),
+          total_usd: totalUSD,
+          total_bs: totalUSD * tasa,
+          metodo,
+          estado: esCredito ? 'PENDIENTE' : 'PAGADO'
+        })
+      });
+
+      vaciarComanda();
+      document.getElementById('txtCliente').value = '';
+      alert(esCredito ? "Anotado a crédito" : "Venta registrada con éxito");
+    }
+
+    // --- PRODUCTOS ---
+    async function guardarProd() {
+      const id = document.getElementById('pId').value;
+      const nombre = document.getElementById('pNombre').value.trim();
+      const precio = parseFloat(document.getElementById('pPrecio').value);
+      if(!nombre || isNaN(precio)) return alert("Indica nombre y precio.");
+
+      await fetch('/api/productos', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ id: id || null, nombre, precio })
+      });
+      limpiarFormProd();
+      cargarProductos();
+    }
+
+    function renderTablaProds() {
+      document.getElementById('tbProds').innerHTML = productos.map(p => `
+        <tr>
+          <td class="py-2.5 font-medium">${p.nombre}</td>
+          <td class="py-2.5 font-mono text-amber-400 font-bold">$${p.precio.toFixed(2)}</td>
+          <td class="py-2.5 font-mono text-slate-400 text-xs">Bs ${(p.precio * tasa).toFixed(2)}</td>
+          <td class="py-2.5 text-right space-x-2">
+            <button onclick="editarP(${p.id}, '${p.nombre}', ${p.precio})" class="text-xs text-amber-300 hover:underline">Editar</button>
+            <button onclick="borrarP(${p.id})" class="text-xs text-rose-400 hover:underline">Borrar</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function editarP(id, nom, pre) {
+      document.getElementById('pId').value = id;
+      document.getElementById('pNombre').value = nom;
+      document.getElementById('pPrecio').value = pre;
+      document.getElementById('lblFormProd').innerText = "Editar Producto";
+    }
+
+    function limpiarFormProd() {
+      document.getElementById('pId').value = '';
+      document.getElementById('pNombre').value = '';
+      document.getElementById('pPrecio').value = '';
+      document.getElementById('lblFormProd').innerText = "Registrar Producto";
+    }
+
+    async function borrarP(id) {
+      if(confirm("¿Eliminar este producto?")) {
+        await fetch(`/api/productos/${id}`, { method: 'DELETE' });
+        cargarProductos();
+      }
+    }
+
+    // --- CUENTAS ---
+    async function cargarCuentas() {
+      const r = await fetch('/api/ventas');
+      const ventas = await r.json();
+      
+      const creds = ventas.filter(v => v.estado === 'PENDIENTE');
+      const pagos = ventas.filter(v => v.estado === 'PAGADO');
+
+      document.getElementById('tbCreditos').innerHTML = creds.map(c => `
+        <tr>
+          <td class="py-2.5">
+            <span class="font-bold text-white block">${c.cliente}</span>
+            <span class="text-xs text-slate-400">${c.detalle}</span>
+          </td>
+          <td class="py-2.5 font-mono font-bold text-rose-300">
+            $${c.total_usd.toFixed(2)}
+            <span class="block text-xs font-normal text-slate-400">Bs ${c.total_bs.toFixed(2)}</span>
+          </td>
+          <td class="py-2.5 text-right">
+            <button onclick="marcarPagado(${c.id})" class="bg-emerald-600 hover:bg-emerald-500 text-white px-2.5 py-1 rounded text-xs font-bold">Cobrar</button>
+          </td>
+        </tr>
+      `).join('') || '<tr><td colspan="3" class="py-3 text-slate-500 text-center text-xs">Sin créditos pendientes</td></tr>';
+
+      document.getElementById('tbPagos').innerHTML = pagos.map(p => `
+        <tr>
+          <td class="py-2">
+            <span class="text-white font-medium">${p.cliente}</span>
+            <span class="text-xs text-slate-400 block">${p.metodo} • ${p.fecha}</span>
+          </td>
+          <td class="py-2 font-mono font-bold text-emerald-400 text-right">$${p.total_usd.toFixed(2)}</td>
+          <td class="py-2 font-mono text-xs text-slate-400 text-right">Bs ${p.total_bs.toFixed(2)}</td>
+        </tr>
+      `).join('') || '<tr><td colspan="3" class="py-3 text-slate-500 text-center text-xs">Sin pagos registrados</td></tr>';
+    }
+
+    async function marcarPagado(id) {
+      const m = prompt("Método de pago (Pago Móvil, Efectivo USD, Efectivo Bs):", "Pago Móvil");
+      if(!m) return;
+      await fetch(`/api/ventas/${id}/pagar`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ metodo: m })
+      });
+      cargarCuentas();
+    }
+
+    // --- TOTALES DEL MES ---
+    async function cargarTotalesMes() {
+      const mes = document.getElementById('selMes').value;
+      if (!mes) return;
+
+      const r = await fetch(`/api/resumen-mensual?mes=${mes}`);
+      const data = await r.json();
+
+      document.getElementById('mesCobradoUSD').innerText = `$${data.cobrado_usd.toFixed(2)}`;
+      document.getElementById('mesCobradoBs').innerText = `Bs ${data.cobrado_bs.toFixed(2)}`;
+      document.getElementById('mesOrdenesCobradas').innerText = `${data.ordenes_cobradas} órdenes`;
+
+      document.getElementById('mesCreditoUSD').innerText = `$${data.credito_usd.toFixed(2)}`;
+      document.getElementById('mesCreditoBs').innerText = `Bs ${data.credito_bs.toFixed(2)}`;
+      document.getElementById('mesOrdenesCredito').innerText = `${data.ordenes_credito} fiados`;
+
+      // Desglose
+      const grid = document.getElementById('gridDesglose');
+      if (!data.desglose.length) {
+        grid.innerHTML = `<p class="text-slate-500 col-span-3 text-xs">No hay cobros registrados en este mes.</p>`;
+      } else {
+        grid.innerHTML = data.desglose.map(d => `
+          <div class="bg-slate-900/70 p-3 rounded-lg border border-slate-700/60">
+            <span class="text-slate-400 text-xs block">${d.metodo} (${d.cantidad} pagos)</span>
+            <span class="text-emerald-400 font-mono font-bold text-lg block">$${d.total_usd.toFixed(2)}</span>
+            <span class="text-slate-300 font-mono text-xs">Bs ${d.total_bs.toFixed(2)}</span>
+          </div>
+        `).join('');
+      }
+
+      // Tabla mes
+      const tb = document.getElementById('tbVentasMes');
+      if (!data.ventas.length) {
+        tb.innerHTML = `<tr><td colspan="5" class="py-4 text-center text-slate-500 text-xs">No hay movimientos en este mes</td></tr>`;
+      } else {
+        tb.innerHTML = data.ventas.map(v => `
+          <tr>
+            <td class="py-2 text-slate-400 text-xs">${v.fecha.substring(5, 16)}</td>
+            <td class="py-2">
+              <span class="font-medium text-white">${v.cliente}</span>
+              <span class="block text-slate-400 text-xs">${v.detalle}</span>
+            </td>
+            <td class="py-2">
+              <span class="px-2 py-0.5 rounded text-xs font-semibold ${v.estado === 'PAGADO' ? 'bg-emerald-950 text-emerald-300 border border-emerald-800' : 'bg-rose-950 text-rose-300 border border-rose-800'}">
+                ${v.estado === 'PAGADO' ? v.metodo : 'CRÉDITO'}
+              </span>
+            </td>
+            <td class="py-2 text-right font-mono font-bold ${v.estado === 'PAGADO' ? 'text-emerald-400' : 'text-rose-400'}">
+              $${v.total_usd.toFixed(2)}
+            </td>
+            <td class="py-2 text-right font-mono text-slate-400 text-xs">
+              Bs ${v.total_bs.toFixed(2)}
+            </td>
+          </tr>
+        `).join('');
+      }
+    }
+
+    // --- CONTROL DE VISTAS ---
+    function mostrar(tab) {
+      ['ventas', 'productos', 'cuentas', 'totales'].forEach(t => {
+        document.getElementById(`tab-${t}`).classList.add('hidden');
+        document.getElementById(`b-${t}`).className = "py-2.5 bg-slate-800 text-slate-300 hover:text-white rounded-lg";
+      });
+      document.getElementById(`tab-${tab}`).classList.remove('hidden');
+      document.getElementById(`b-${tab}`).className = "py-2.5 bg-amber-500 text-slate-950 rounded-lg shadow font-bold";
+      
+      if (tab === 'cuentas') cargarCuentas();
+      if (tab === 'totales') cargarTotalesMes();
+    }
+
+    init();
+  </script>
+</body>
+</html>
